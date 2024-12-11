@@ -1,0 +1,857 @@
+specVersion: 0.0.2
+description: Liquidity Gauges of the Balancer Protocol
+{{#if graft}}
+features:
+  - grafting
+graft:
+  base: {{graft.base}}
+  block: {{graft.block}}
+{{/if}}
+repository: https://github.com/balancer-labs/gauges-subgraph/
+schema:
+  file: ./schema.graphql
+dataSources:
+  {{#if EventEmitter}}
+  - kind: ethereum/contract
+    name: EventEmitter
+    network: {{network}}
+    source:
+      address: '{{EventEmitter.address}}'
+      abi: EventEmitter
+      startBlock: {{EventEmitter.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/eventEmitter.ts
+      entities:
+        - Pool
+      abis:
+        - name: EventEmitter
+          file: ./abis/EventEmitter.json
+        - name: ChildChainStreamer
+          file: ./abis/ChildChainStreamer.json
+        - name: ChildChainLiquidityGaugeV2
+          file: ./abis/ChildChainLiquidityGaugeV2.json
+      eventHandlers:
+        - event: LogArgument(indexed address,indexed bytes32,bytes,uint256)
+          handler: handleLogArgument
+  {{/if}}
+  {{#if gaugeFactory}}
+  - kind: ethereum/contract
+    name: GaugeFactory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{gaugeFactory.address}}'
+      abi: GaugeFactory
+      # prettier-ignore
+      startBlock: {{ gaugeFactory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: GaugeFactory
+          file: ./abis/LiquidityGaugeFactory.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: WeightedPool
+          file: ./abis/WeightedPool.json
+        - name: Vault
+          file: ./abis/Vault.json
+      entities:
+        - GaugeFactory
+        - LiquidityGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address,indexed address)
+          handler: handleMainnetLiquidityGaugeCreated
+  {{/if}}
+  {{#if gaugeV2Factory}}
+  - kind: ethereum/contract
+    name: GaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{gaugeV2Factory.address}}'
+      abi: GaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ gaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: GaugeV2Factory
+          file: ./abis/LiquidityGaugeV2Factory.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: WeightedPool
+          file: ./abis/WeightedPool.json
+        - name: Vault
+          file: ./abis/Vault.json
+      entities:
+        - GaugeFactory
+        - LiquidityGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleMainnetLiquidityGaugeCreated
+  {{/if}}
+  {{#if singleRecipientGaugeFactory}}
+  - kind: ethereum/contract
+    name: SingleRecipientGaugeFactory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{singleRecipientGaugeFactory.address}}'
+      abi: SingleRecipientGaugeFactory
+      # prettier-ignore
+      startBlock: {{ singleRecipientGaugeFactory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: SingleRecipientGaugeFactory
+          file: ./abis/SingleRecipientGaugeFactory.json
+        - name: ArbitrumRootGauge # required for binding
+          file: ./abis/ArbitrumRootGauge.json
+      entities:
+        - GaugeFactory
+        - SingleRecipientGauge
+      eventHandlers:
+        - event: SingleRecipientGaugeCreated(indexed address,indexed address)
+          handler: handleSingleRecipientGaugeCreated
+  {{/if}}
+  {{#if singleRecipientGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: SingleRecipientGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{singleRecipientGaugeV2Factory.address}}'
+      abi: SingleRecipientGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ singleRecipientGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: ArbitrumRootGauge # required for binding
+          file: ./abis/ArbitrumRootGauge.json
+        - name: SingleRecipientGaugeV2Factory
+          file: ./abis/ArbitrumRootGaugeV2Factory.json
+      entities:
+        - GaugeFactory
+        - SingleRecipientGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleSingleRecipientGaugeCreated
+  {{/if}}
+  {{#if arbitrumRootGaugeFactory}}
+  - kind: ethereum/contract
+    name: ArbitrumRootGaugeFactory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{arbitrumRootGaugeFactory.address}}'
+      abi: ArbitrumRootGaugeFactory
+      # prettier-ignore
+      startBlock: {{ arbitrumRootGaugeFactory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: ArbitrumRootGaugeFactory
+          file: ./abis/ArbitrumRootGaugeFactory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: ArbitrumRootGaugeCreated(indexed address,indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if arbitrumRootGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: ArbitrumRootGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{arbitrumRootGaugeV2Factory.address}}'
+      abi: ArbitrumRootGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ arbitrumRootGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: ArbitrumRootGaugeV2Factory
+          file: ./abis/ArbitrumRootGaugeV2Factory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if polygonRootGaugeFactory}}
+  - kind: ethereum/contract
+    name: PolygonRootGaugeFactory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{polygonRootGaugeFactory.address}}'
+      abi: PolygonRootGaugeFactory
+      # prettier-ignore
+      startBlock: {{ polygonRootGaugeFactory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: PolygonRootGaugeFactory
+          file: ./abis/PolygonRootGaugeFactory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: PolygonRootGaugeCreated(indexed address,indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if polygonRootGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: PolygonRootGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{polygonRootGaugeV2Factory.address}}'
+      abi: PolygonRootGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ polygonRootGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: PolygonRootGaugeV2Factory
+          file: ./abis/PolygonRootGaugeV2Factory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if optimismRootGaugeFactory}}
+  - kind: ethereum/contract
+    name: OptimismRootGaugeFactory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{optimismRootGaugeFactory.address}}'
+      abi: OptimismRootGaugeFactory
+      # prettier-ignore
+      startBlock: {{ optimismRootGaugeFactory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: OptimismRootGaugeFactory
+          file: ./abis/OptimismRootGaugeFactory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: OptimismRootGaugeCreated(indexed address,indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if optimismRootGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: OptimismRootGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{optimismRootGaugeV2Factory.address}}'
+      abi: OptimismRootGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ optimismRootGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: OptimismRootGaugeV2Factory
+          file: ./abis/OptimismRootGaugeV2Factory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if baseRootGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: BaseRootGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{baseRootGaugeV2Factory.address}}'
+      abi: OptimismRootGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ baseRootGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: OptimismRootGaugeV2Factory
+          file: ./abis/OptimismRootGaugeV2Factory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if fraxtalRootGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: FraxtalRootGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{fraxtalRootGaugeV2Factory.address}}'
+      abi: OptimismRootGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ fraxtalRootGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: OptimismRootGaugeV2Factory
+          file: ./abis/OptimismRootGaugeV2Factory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if gnosisRootGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: GnosisRootGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{gnosisRootGaugeV2Factory.address}}'
+      abi: GnosisRootGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ gnosisRootGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json
+        - name: GnosisRootGaugeV2Factory
+          file: ./abis/OptimismRootGaugeV2Factory.json
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if avalancheRootGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: AvalancheRootGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{avalancheRootGaugeV2Factory.address}}'
+      abi: AvalancheRootGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ avalancheRootGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json # required for binding
+        - name: AvalancheRootGaugeV2Factory
+          file: ./abis/OptimismRootGaugeV2Factory.json # has the same GaugeCreated event
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if polygonZkEVMRootGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: PolygonZkEVMRootGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{polygonZkEVMRootGaugeV2Factory.address}}'
+      abi: PolygonZkEVMRootGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ polygonZkEVMRootGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGauge.json # required for binding
+        - name: PolygonZkEVMRootGaugeV2Factory
+          file: ./abis/OptimismRootGaugeV2Factory.json # has the same GaugeCreated event
+      entities:
+        - RootGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleRootGaugeCreated
+  {{/if}}
+  {{#if childChainGaugeFactory}}
+  - kind: ethereum/contract
+    name: ChildChainLiquidityGaugeFactory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{childChainGaugeFactory.address}}'
+      abi: ChildChainLiquidityGaugeFactory
+      # prettier-ignore
+      startBlock: {{ childChainGaugeFactory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: ChildChainLiquidityGaugeFactory
+          file: ./abis/ChildChainLiquidityGaugeFactory.json
+        - name: RewardsOnlyGauge
+          file: ./abis/RewardsOnlyGauge.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: WeightedPool
+          file: ./abis/WeightedPool.json
+        - name: Vault
+          file: ./abis/Vault.json
+      entities:
+        - GaugeFactory
+        - LiquidityGauge
+      eventHandlers:
+        - event: RewardsOnlyGaugeCreated(indexed address,indexed address,address)
+          handler: handleRewardsOnlyGaugeCreated
+  {{/if}}
+  {{#if childChainGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: ChildChainLiquidityGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{childChainGaugeV2Factory.address}}'
+      abi: ChildChainGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ childChainGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: ChildChainGaugeV2Factory
+          file: ./abis/ChildChainGaugeV2Factory.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: WeightedPool
+          file: ./abis/WeightedPool.json
+        - name: Vault
+          file: ./abis/Vault.json
+      entities:
+        - GaugeFactory
+        - LiquidityGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleChildChainV2LiquidityGaugeCreated
+  {{/if}}
+  {{#if tempChildChainGaugeV2Factory}}
+  - kind: ethereum/contract
+    name: TempChildChainLiquidityGaugeV2Factory
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{tempChildChainGaugeV2Factory.address}}'
+      abi: ChildChainGaugeV2Factory
+      # prettier-ignore
+      startBlock: {{ tempChildChainGaugeV2Factory.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeFactory.ts
+      abis:
+        - name: ChildChainGaugeV2Factory
+          file: ./abis/ChildChainGaugeV2Factory.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: WeightedPool
+          file: ./abis/WeightedPool.json
+        - name: Vault
+          file: ./abis/Vault.json
+      entities:
+        - GaugeFactory
+        - LiquidityGauge
+      eventHandlers:
+        - event: GaugeCreated(indexed address)
+          handler: handleChildChainV2LiquidityGaugeCreated
+  {{/if}}
+  {{#if gaugeController}}
+  - kind: ethereum/contract
+    name: GaugeController
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{gaugeController.address}}'
+      abi: GaugeController
+      # prettier-ignore
+      startBlock: {{ gaugeController.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeController.ts
+      abis:
+        - name: GaugeController
+          file: ./abis/GaugeController.json
+      entities:
+        - GaugeVote
+      eventHandlers:
+        - event: AddType(string,int128)
+          handler: handleAddType
+        - event: NewGauge(address,int128,uint256)
+          handler: handleNewGauge
+        - event: VoteForGauge(uint256,address,address,uint256)
+          handler: handleVoteForGauge
+  {{/if}}
+  {{#if votingEscrow}}
+  - kind: ethereum/contract
+    name: VotingEscrow
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{votingEscrow.address}}'
+      abi: votingEscrow
+      # prettier-ignore
+      startBlock: {{ votingEscrow.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/voting.ts
+      abis:
+        - name: votingEscrow
+          file: ./abis/VotingEscrow.json
+      entities:
+        - UserVotingEscrowShare
+      eventHandlers:
+        - event: Deposit(indexed address,uint256,indexed uint256,int128,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,uint256,uint256)
+          handler: handleWithdraw
+        - event: Supply(uint256,uint256)
+          handler: handleSupply
+  {{/if}}
+  {{#if authorizerAdaptorEntrypoint}}
+  - kind: ethereum/contract
+    name: AuthorizerAdaptorEntrypoint
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{authorizerAdaptorEntrypoint.address}}'
+      abi: authorizerAdaptorEntrypoint
+      # prettier-ignore
+      startBlock: {{ authorizerAdaptorEntrypoint.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/authorizerAdaptorEntrypoint.ts
+      abis:
+        - name: authorizerAdaptorEntrypoint
+          file: ./abis/AuthorizerAdaptorEntrypoint.json
+        - name: ChildChainStreamer
+          file: ./abis/ChildChainStreamer.json
+        - name: ChildChainLiquidityGaugeV2
+          file: ./abis/ChildChainLiquidityGaugeV2.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+      entities:
+        - LiquidityGauge
+      eventHandlers:
+        - event: ActionPerformed(indexed bytes4,indexed address,indexed address,bytes)
+          handler: handleActionPerformed
+  {{/if}}
+  {{#if omniVotingEscrow}}
+  - kind: ethereum/contract
+    name: OmniVotingEscrow
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{omniVotingEscrow.address}}'
+      abi: omniVotingEscrow
+      # prettier-ignore
+      startBlock: {{ omniVotingEscrow.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/voting.ts
+      abis:
+        - name: omniVotingEscrow
+          file: ./abis/OmniVotingEscrow.json
+      entities:
+        - UserVotingEscrowShare
+      eventHandlers:
+        - event: UserBalToChain(uint16,address,address,(int128,int128,uint256,uint256),(int128,int128,uint256,uint256))
+          handler: handleUserBalToChain
+  {{/if}}
+  {{#if omniVotingEscrowChild}}
+  - kind: ethereum/contract
+    name: OmniVotingEscrowChild
+    # prettier-ignore
+    network: {{network}}
+    source:
+      address: '{{omniVotingEscrowChild.address}}'
+      abi: omniVotingEscrowChild
+      # prettier-ignore
+      startBlock: {{ omniVotingEscrowChild.startBlock }}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/voting.ts
+      abis:
+        - name: omniVotingEscrowChild
+          file: ./abis/OmniVotingEscrowChild.json
+      entities:
+        - UserVotingEscrowShare
+      eventHandlers:
+        - event: UserBalFromChain(uint16,address,(int128,int128,uint256,uint256),(int128,int128,uint256,uint256))
+          handler: handleUserBalFromChain
+  {{/if}}
+templates:
+  - kind: ethereum/contract
+    name: LiquidityGauge
+    # prettier-ignore
+    network: {{network}}
+    source:
+      abi: LiquidityGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gauge.ts
+      entities:
+        - LiquidityGauge
+        - UserGaugeShare
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGaugeV2.json
+        - name: ChildChainLiquidityGaugeV2
+          file: ./abis/ChildChainLiquidityGaugeV2.json
+      eventHandlers:
+        - event: RelativeWeightCapChanged(uint256)
+          handler: handleRelativeWeightCapChanged
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      {{#if supportTraces}}
+      callHandlers:
+        - function: deposit_reward_token(address,uint256)
+          handler: handleDepositRewardToken
+        - function: killGauge()
+          handler: handleKillGauge
+        - function: unkillGauge()
+          handler: handleUnkillGauge
+      {{/if}}
+  - kind: ethereum/contract
+    name: RewardsOnlyGauge
+    # prettier-ignore
+    network: {{network}}
+    source:
+      abi: RewardsOnlyGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gauge.ts
+      entities:
+        - LiquidityGauge
+        - UserGaugeShare
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: RewardsOnlyGauge
+          file: ./abis/RewardsOnlyGauge.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+        - name: ChildChainStreamer
+          file: ./abis/ChildChainStreamer.json
+        - name: ChildChainLiquidityGaugeV2
+          file: ./abis/ChildChainLiquidityGaugeV2.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+  - kind: ethereum/contract
+    name: ChildChainStreamer
+    # prettier-ignore
+    network: {{network}}
+    source:
+      abi: ChildChainStreamer
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gauge.ts
+      entities:
+        - LiquidityGauge
+        - RewardToken
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: ChildChainStreamer
+          file: ./abis/ChildChainStreamer.json
+        - name: ChildChainLiquidityGaugeV2
+          file: ./abis/ChildChainLiquidityGaugeV2.json
+      eventHandlers:
+        - event: RewardDurationUpdated(indexed address,uint256)
+          handler: handleRewardDurationUpdated
+  - kind: ethereum/contract
+    name: RootGauge
+    # prettier-ignore
+    network: {{network}}
+    source:
+      abi: ArbitrumRootGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gauge.ts
+      entities:
+        - RootGauge
+      abis:
+        - name: ArbitrumRootGauge
+          file: ./abis/ArbitrumRootGaugeV2.json
+      eventHandlers:
+        - event: RelativeWeightCapChanged(uint256)
+          handler: handleRootGaugeRelativeWeightCapChanged
+      {{#if supportTraces}}
+      callHandlers:
+        - function: killGauge()
+          handler: handleRootKillGauge
+        - function: unkillGauge()
+          handler: handleRootUnkillGauge
+      {{/if}}
+  - kind: ethereum/contract
+    name: SingleRecipientGauge
+    # prettier-ignore
+    network: {{network}}
+    source:
+      abi: ArbitrumRootGauge
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gauge.ts
+      entities:
+        - SingleRecipientGauge
+      abis:
+        - name: ArbitrumRootGauge # share the same events
+          file: ./abis/ArbitrumRootGaugeV2.json
+      eventHandlers:
+        - event: RelativeWeightCapChanged(uint256)
+          handler: handleSingleRecipientGaugeRelativeWeightCapChanged
+      {{#if supportTraces}}
+      callHandlers:
+        - function: killGauge()
+          handler: handleSingleRecipientKillGauge
+        - function: unkillGauge()
+          handler: handleSingleRecipientUnkillGauge
+      {{/if}}
+  - kind: ethereum/contract
+    name: GaugeInjector
+    # prettier-ignore
+    network: {{network}}
+    source:
+      abi: GaugeInjector
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/gaugeInjector.ts
+      entities:
+        - GaugeInjector
+      abis:
+        - name: GaugeInjector
+          file: ./abis/ChildChainGaugeInjector.json
+        - name: ChildChainLiquidityGaugeV2
+          file: ./abis/ChildChainLiquidityGaugeV2.json
+        - name: LiquidityGauge
+          file: ./abis/LiquidityGauge.json
+      eventHandlers:
+        - event: EmissionsInjection(address,address,uint256)
+          handler: handleEmissionsInjection
